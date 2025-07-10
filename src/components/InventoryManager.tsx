@@ -4,12 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Minus, Package, AlertTriangle, Search, Filter, X } from "lucide-react";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Plus, Minus, Package, AlertTriangle, Search, Filter, X, Check, ChevronsUpDown } from "lucide-react";
 import { ProductWithInventory, InventoryLog } from "@/types/store";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 interface InventoryManagerProps {
   products: ProductWithInventory[];
@@ -20,10 +22,10 @@ const InventoryManager = ({ products, onUpdateInventory }: InventoryManagerProps
   const [selectedProduct, setSelectedProduct] = useState<ProductWithInventory | null>(null);
   const [adjustmentType, setAdjustmentType] = useState<'ADD' | 'REMOVE' | 'ADJUST'>('ADD');
   const [quantity, setQuantity] = useState<number>(0);
-  const [comment, setComment] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [stockFilter, setStockFilter] = useState<"all" | "in-stock" | "out-of-stock" | "low-stock">("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [productSelectOpen, setProductSelectOpen] = useState(false);
   const { toast } = useToast();
 
   // Filter and search logic
@@ -82,7 +84,7 @@ const InventoryManager = ({ products, onUpdateInventory }: InventoryManagerProps
       productId: selectedProduct.id,
       type: adjustmentType,
       quantity,
-      comment
+      comment: ""
     };
 
     onUpdateInventory(selectedProduct.id, newStock, log);
@@ -94,7 +96,6 @@ const InventoryManager = ({ products, onUpdateInventory }: InventoryManagerProps
 
     // Reset form
     setQuantity(0);
-    setComment("");
     setSelectedProduct(null);
   };
 
@@ -109,59 +110,6 @@ const InventoryManager = ({ products, onUpdateInventory }: InventoryManagerProps
 
   return (
     <div className="space-y-6">
-      {/* Alerts Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Low Stock Alert */}
-        {lowStockProducts.length > 0 && (
-          <Card className="border-orange-200 bg-orange-50">
-            <CardHeader>
-              <CardTitle className="flex items-center text-orange-800">
-                <AlertTriangle className="w-5 h-5 mr-2" />
-                Low Stock Alert ({lowStockProducts.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 max-h-32 overflow-y-auto">
-                {lowStockProducts.slice(0, 3).map(product => (
-                  <div key={product.id} className="flex justify-between items-center">
-                    <span className="text-orange-700 text-sm">{product.title}</span>
-                    <Badge variant="destructive" className="text-xs">{product.stock} left</Badge>
-                  </div>
-                ))}
-                {lowStockProducts.length > 3 && (
-                  <div className="text-xs text-orange-600">+{lowStockProducts.length - 3} more</div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Out of Stock Alert */}
-        {outOfStockProducts.length > 0 && (
-          <Card className="border-red-200 bg-red-50">
-            <CardHeader>
-              <CardTitle className="flex items-center text-red-800">
-                <AlertTriangle className="w-5 h-5 mr-2" />
-                Out of Stock ({outOfStockProducts.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 max-h-32 overflow-y-auto">
-                {outOfStockProducts.slice(0, 3).map(product => (
-                  <div key={product.id} className="flex justify-between items-center">
-                    <span className="text-red-700 text-sm">{product.title}</span>
-                    <Badge variant="destructive" className="text-xs">0 stock</Badge>
-                  </div>
-                ))}
-                {outOfStockProducts.length > 3 && (
-                  <div className="text-xs text-red-600">+{outOfStockProducts.length - 3} more</div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-
       {/* Search and Filters */}
       <Card>
         <CardHeader>
@@ -238,28 +186,61 @@ const InventoryManager = ({ products, onUpdateInventory }: InventoryManagerProps
         <CardContent className="space-y-4">
           <div>
             <Label>Select Product</Label>
-            <Select 
-              value={selectedProduct?.id || ""}
-              onValueChange={(value) => {
-                const product = filteredProducts.find(p => p.id === value);
-                setSelectedProduct(product || null);
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Choose a product..." />
-              </SelectTrigger>
-              <SelectContent>
-                {filteredProducts.map(product => (
-                  <SelectItem key={product.id} value={product.id}>
-                    {product.title} (Current: {product.stock})
-                    {product.stock === 0 && <span className="text-red-500 ml-1">- OUT OF STOCK</span>}
-                    {product.stock <= (product.minStock || 5) && product.stock > 0 && 
-                      <span className="text-orange-500 ml-1">- LOW STOCK</span>
-                    }
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={productSelectOpen} onOpenChange={setProductSelectOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={productSelectOpen}
+                  className="w-full justify-between"
+                >
+                  {selectedProduct
+                    ? `${selectedProduct.title} (Current: ${selectedProduct.stock})`
+                    : "Choose a product..."}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0">
+                <Command>
+                  <CommandInput placeholder="Search products..." />
+                  <CommandEmpty>No product found.</CommandEmpty>
+                  <CommandGroup>
+                    <CommandList>
+                      {filteredProducts.map((product) => (
+                        <CommandItem
+                          key={product.id}
+                          value={product.title}
+                          onSelect={() => {
+                            setSelectedProduct(product);
+                            setProductSelectOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              selectedProduct?.id === product.id ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <span>{product.title}</span>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="secondary" className="text-xs">{product.category}</Badge>
+                                <span className="text-sm text-gray-500">Stock: {product.stock}</span>
+                                {product.stock === 0 && <Badge variant="destructive" className="text-xs">OUT OF STOCK</Badge>}
+                                {product.stock <= (product.minStock || 5) && product.stock > 0 && 
+                                  <Badge variant="secondary" className="text-xs">LOW STOCK</Badge>
+                                }
+                              </div>
+                            </div>
+                          </div>
+                        </CommandItem>
+                      ))}
+                    </CommandList>
+                  </CommandGroup>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           {selectedProduct && (
@@ -299,15 +280,6 @@ const InventoryManager = ({ products, onUpdateInventory }: InventoryManagerProps
                 />
               </div>
 
-              <div>
-                <Label>Comment</Label>
-                <Textarea
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  placeholder="Add a note about this inventory change..."
-                />
-              </div>
-
               <Button onClick={handleInventoryUpdate} className="w-full">
                 Update Inventory
               </Button>
@@ -315,6 +287,59 @@ const InventoryManager = ({ products, onUpdateInventory }: InventoryManagerProps
           )}
         </CardContent>
       </Card>
+
+      {/* Alerts Section - Moved Down */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Low Stock Alert */}
+        {lowStockProducts.length > 0 && (
+          <Card className="border-orange-200 bg-orange-50">
+            <CardHeader>
+              <CardTitle className="flex items-center text-orange-800">
+                <AlertTriangle className="w-5 h-5 mr-2" />
+                Low Stock Alert ({lowStockProducts.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2 max-h-32 overflow-y-auto">
+                {lowStockProducts.slice(0, 3).map(product => (
+                  <div key={product.id} className="flex justify-between items-center">
+                    <span className="text-orange-700 text-sm">{product.title}</span>
+                    <Badge variant="destructive" className="text-xs">{product.stock} left</Badge>
+                  </div>
+                ))}
+                {lowStockProducts.length > 3 && (
+                  <div className="text-xs text-orange-600">+{lowStockProducts.length - 3} more</div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Out of Stock Alert */}
+        {outOfStockProducts.length > 0 && (
+          <Card className="border-red-200 bg-red-50">
+            <CardHeader>
+              <CardTitle className="flex items-center text-red-800">
+                <AlertTriangle className="w-5 h-5 mr-2" />
+                Out of Stock ({outOfStockProducts.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2 max-h-32 overflow-y-auto">
+                {outOfStockProducts.slice(0, 3).map(product => (
+                  <div key={product.id} className="flex justify-between items-center">
+                    <span className="text-red-700 text-sm">{product.title}</span>
+                    <Badge variant="destructive" className="text-xs">0 stock</Badge>
+                  </div>
+                ))}
+                {outOfStockProducts.length > 3 && (
+                  <div className="text-xs text-red-600">+{outOfStockProducts.length - 3} more</div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       {/* Current Inventory */}
       <Card>
