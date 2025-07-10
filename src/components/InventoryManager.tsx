@@ -110,71 +110,6 @@ const InventoryManager = ({ products, onUpdateInventory }: InventoryManagerProps
 
   return (
     <div className="space-y-6">
-      {/* Search and Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Filter className="w-5 h-5 mr-2" />
-            Search & Filters
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {/* Search Bar */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
-                type="text"
-                placeholder="Search products..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-
-            {/* Stock Filter */}
-            <Select value={stockFilter} onValueChange={(value: "all" | "in-stock" | "out-of-stock" | "low-stock") => setStockFilter(value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by stock" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Stock Levels</SelectItem>
-                <SelectItem value="in-stock">In Stock</SelectItem>
-                <SelectItem value="out-of-stock">Out of Stock</SelectItem>
-                <SelectItem value="low-stock">Low Stock</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* Category Filter */}
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {categories.map(category => (
-                  <SelectItem key={category} value={category}>{category}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Clear Filters */}
-            <Button variant="outline" onClick={clearFilters} className="flex items-center">
-              <X className="w-4 h-4 mr-2" />
-              Clear Filters
-            </Button>
-          </div>
-
-          {/* Filter Summary */}
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <span>Showing {filteredProducts.length} of {products.length} products</span>
-            {(searchTerm || stockFilter !== "all" || categoryFilter !== "all") && (
-              <Badge variant="secondary">Filtered</Badge>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Inventory Adjustment */}
       <Card>
         <CardHeader>
@@ -289,7 +224,7 @@ const InventoryManager = ({ products, onUpdateInventory }: InventoryManagerProps
       </Card>
 
       {/* Alerts Section - Moved Down */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
         {/* Low Stock Alert */}
         {lowStockProducts.length > 0 && (
           <Card className="border-orange-200 bg-orange-50">
@@ -346,6 +281,61 @@ const InventoryManager = ({ products, onUpdateInventory }: InventoryManagerProps
         <CardHeader>
           <CardTitle>Current Inventory</CardTitle>
         </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Search Bar */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                type="text"
+                placeholder="Search products..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            {/* Stock Filter */}
+            <Select value={stockFilter} onValueChange={(value: "all" | "in-stock" | "out-of-stock" | "low-stock") => setStockFilter(value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by stock" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Stock Levels</SelectItem>
+                <SelectItem value="in-stock">In Stock</SelectItem>
+                <SelectItem value="out-of-stock">Out of Stock</SelectItem>
+                <SelectItem value="low-stock">Low Stock</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Category Filter */}
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categories.map(category => (
+                  <SelectItem key={category} value={category}>{category}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Clear Filters */}
+            <Button variant="outline" onClick={clearFilters} className="flex items-center">
+              <X className="w-4 h-4 mr-2" />
+              Clear Filters
+            </Button>
+          </div>
+
+          {/* Filter Summary */}
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <span>Showing {filteredProducts.length} of {products.length} products</span>
+            {(searchTerm || stockFilter !== "all" || categoryFilter !== "all") && (
+              <Badge variant="secondary">Filtered</Badge>
+            )}
+          </div>
+        </CardContent>
         <CardContent>
           <div className="space-y-2">
             {filteredProducts.length === 0 ? (
