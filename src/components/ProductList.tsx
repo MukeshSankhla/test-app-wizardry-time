@@ -11,6 +11,8 @@ import ProductForm from "./ProductForm";
 import { Product } from "@/types/product";
 import { useCurrentCurrency } from "@/hooks/useSettings";
 
+const INITIAL_LOAD_LIMIT = 50;
+
 interface ProductListProps {
   products: Product[];
   onUpdate: (product: Product) => void;
@@ -22,6 +24,7 @@ const ProductList = ({ products, onUpdate, onDelete }: ProductListProps) => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [stockFilter, setStockFilter] = useState<"all" | "in-stock" | "out-of-stock" | "low-stock">("all");
+  const [displayLimit, setDisplayLimit] = useState(INITIAL_LOAD_LIMIT);
   const currentCurrency = useCurrentCurrency();
 
   const filteredProducts = products.filter(product => {
@@ -45,6 +48,13 @@ const ProductList = ({ products, onUpdate, onDelete }: ProductListProps) => {
 
     return matchesSearch && matchesStockFilter;
   });
+
+  const displayedProducts = filteredProducts.slice(0, displayLimit);
+  const hasMoreProducts = displayLimit < filteredProducts.length;
+
+  const loadMore = () => {
+    setDisplayLimit(prev => prev + 50);
+  };
 
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
@@ -122,7 +132,7 @@ const ProductList = ({ products, onUpdate, onDelete }: ProductListProps) => {
       
       {/* Grid Layout for Products */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {filteredProducts.map((product) => (
+        {displayedProducts.map((product) => (
           <Card key={product.id} className="h-full">
             <CardContent className="p-4">
               <div className="space-y-3">
@@ -209,6 +219,20 @@ const ProductList = ({ products, onUpdate, onDelete }: ProductListProps) => {
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      {/* Show More Button */}
+      {hasMoreProducts && (
+        <div className="flex justify-center mt-8">
+          <Button onClick={loadMore} variant="outline" size="lg">
+            Show More Products ({filteredProducts.length - displayLimit} remaining)
+          </Button>
+        </div>
+      )}
+
+      {/* Results Info */}
+      <div className="text-center mt-4 text-gray-500 text-sm">
+        Showing {displayedProducts.length} of {filteredProducts.length} products
       </div>
 
       {filteredProducts.length === 0 && (searchTerm || stockFilter !== "all") && (

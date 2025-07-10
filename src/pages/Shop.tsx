@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, ArrowLeft } from "lucide-react";
@@ -14,6 +13,8 @@ import { CartItem, Product } from "@/types/product";
 import { useFirebaseProducts } from "@/hooks/useFirebaseProducts";
 import { useSettings } from "@/hooks/useSettings";
 
+const INITIAL_LOAD_LIMIT = 50;
+
 const Shop = () => {
   const navigate = useNavigate();
   const { products, loading, updateProduct } = useFirebaseProducts();
@@ -21,13 +22,34 @@ const Shop = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [displayedProducts, setDisplayedProducts] = useState<Product[]>([]);
+  const [displayLimit, setDisplayLimit] = useState(INITIAL_LOAD_LIMIT);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const { currentCurrency } = useSettings();
 
   useEffect(() => {
     if (products) {
-      const filtered = products.filter(product =>
+      // Sort products by most sold (assuming we track sales in a field like 'salesCount')
+      // For now, we'll sort by stock level as a proxy (lower stock = more sold)
+      const sortedByMostSold = [...products].sort((a, b) => {
+        // Products with lower stock are considered "more sold"
+        const stockA = a.stock || 0;
+        const stockB = b.stock || 0;
+        
+        // If both have stock, sort by lowest stock first (most sold)
+        if (stockA > 0 && stockB > 0) {
+          return stockA - stockB;
+        }
+        
+        // In-stock items come before out-of-stock
+        if (stockA > 0 && stockB === 0) return -1;
+        if (stockA === 0 && stockB > 0) return 1;
+        
+        return 0;
+      });
+
+      const filtered = sortedByMostSold.filter(product =>
         product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         product.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         product.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -35,6 +57,16 @@ const Shop = () => {
       setFilteredProducts(filtered);
     }
   }, [products, searchQuery]);
+
+  useEffect(() => {
+    setDisplayedProducts(filteredProducts.slice(0, displayLimit));
+  }, [filteredProducts, displayLimit]);
+
+  const loadMore = () => {
+    setDisplayLimit(prev => prev + 50);
+  };
+
+  const hasMoreProducts = displayLimit < filteredProducts.length;
 
   const addToCart = async (product: Product) => {
     // Check if product has sufficient stock
@@ -157,7 +189,7 @@ const Shop = () => {
       {/* Products with improved image sizing */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-          {filteredProducts.map((product) => (
+          {displayedProducts.map((product) => (
             <Card key={product.id} className="h-full">
               <CardContent className="p-4">
                 <div className="space-y-3">
@@ -199,6 +231,20 @@ const Shop = () => {
               </CardContent>
             </Card>
           ))}
+        </div>
+
+        {/* Show More Button */}
+        {hasMoreProducts && (
+          <div className="flex justify-center mt-8">
+            <Button onClick={loadMore} variant="outline" size="lg">
+              Show More Products ({filteredProducts.length - displayLimit} remaining)
+            </Button>
+          </div>
+        )}
+
+        {/* Results Info */}
+        <div className="text-center mt-4 text-gray-500 text-sm">
+          Showing {displayedProducts.length} of {filteredProducts.length} products
         </div>
       </div>
 
